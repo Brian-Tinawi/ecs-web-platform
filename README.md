@@ -49,7 +49,7 @@ Numbers 2–9 and 12+ are deliberately left free for future tiers (data, managem
 | Application Load Balancer | L7 health checks on `/health`, per-target 5xx/latency metrics | NLB (L4 only; no HTTP health/metrics) — ADR 004 |
 | ECR | Native to ECS, IAM-controlled, scan on push, immutable tags, keep-5 lifecycle | Docker Hub (rate limits, public), GHCR (extra credentials) |
 | NAT Gateway (single) | Private tasks need outbound HTTPS to pull images | NAT per AZ (2× fixed cost), VPC endpoints (~$7/mo each per AZ) — ADR 002 |
-| CodeBuild | Builds the image in AWS; no Docker on the workstation | Local Docker (unavailable), GitHub Actions push (needs wider CI role) — ADR 001 |
+| CodeBuild | Builds the image in AWS; | — |
 | CloudWatch | Native ALB/ECS metrics + alarms | Third-party APM (cost/scope) |
 | AWS Budgets | Mandatory per-project cost alert (tag filter) | — |
 
