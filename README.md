@@ -2,7 +2,7 @@
 
 > Highly available customer website on ECS Fargate behind an ALB across two AZs — self-healing, autoscaling, failure-tested, fully Terraform.
 
-<!-- last-verified -->![Last verified](https://img.shields.io/badge/last%20verified-2026--11--05-brightgreen)<!-- /last-verified --> ![Terraform](https://img.shields.io/badge/Terraform-1.17-7B42BC?logo=terraform) ![Cloud](https://img.shields.io/badge/AWS-cloud-informational) ![CI](https://github.com/Brian-Tinawi/ecs-web-platform/actions/workflows/ci.yml/badge.svg)
+![Terraform](https://img.shields.io/badge/Terraform-1.17-7B42BC?logo=terraform) <!-- last-verified -->![Last verified](https://img.shields.io/badge/last%20verified-2026--11--05-brightgreen)<!-- /last-verified --> ![Cloud](https://img.shields.io/badge/AWS-cloud-informational) ![CI](https://github.com/Brian-Tinawi/ecs-web-platform/actions/workflows/ci.yml/badge.svg)
 
 ## The scenario (fictional)
 **Contoso Harbor Supply** — a 200-person marine-parts distributor *(fictional company, for portfolio purposes)*.
