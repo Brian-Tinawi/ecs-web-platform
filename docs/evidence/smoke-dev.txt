@@ -1,0 +1,23 @@
+Smoke tests for ecs-web-platform (dev) — 2026-11-05T07:30:05Z
+[07:30:12Z] PASS  ALB /health answers 200
+[07:30:12Z] PASS  home page serves the app
+[07:32:25Z] PASS  2 targets healthy in the ALB target group (2)
+[07:32:26Z] PASS  tasks run in 2 distinct AZs (2)
+[07:32:29Z] PASS  ECR scan-on-push is enabled
+--- Failure test 1: stop ONE task
+[07:32:37Z] before: us-west-2a us-west-2b 
+[07:32:40Z] stopped 1 task
+[07:34:59Z] test1: back to 2 healthy targets in 139s; 0/67 probes failed (non-200)
+[07:34:59Z] PASS  site stayed up while 1 task was stopped (<=2 failed probes)
+[07:34:59Z] PASS  service self-healed to 2 healthy targets within 180s after stopping 1 task
+--- Failure test 2: stop ALL tasks in one AZ (autoscaling min raised to 4 so each AZ holds 2 tasks)
+[07:35:46Z] before:       2 us-west-2a       2 us-west-2b 
+[07:35:49Z] PASS  4 tasks running, 2 per AZ, before the AZ-loss test
+[07:35:51Z] stopped every task in one AZ
+[07:38:29Z] test2: back to 4 healthy targets in 158s; 0/77 probes failed (non-200)
+[07:38:29Z] PASS  site stayed up while one AZ lost all its tasks (<=2 failed probes)
+[07:38:29Z] PASS  service self-healed to 4 healthy targets within 240s after losing a whole AZ
+[07:38:29Z] after:       2 us-west-2a       2 us-west-2b 
+FAILOVER_SUMMARY one_task_recovery_s=139 az_loss_recovery_s=158
+
+Smoke tests (dev): 10 passed, 0 failed — 2026-11-05T07:38:31Z

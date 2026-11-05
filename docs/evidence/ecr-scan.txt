@@ -1,0 +1,7 @@
+$ aws ecr describe-image-scan-findings
+completed: '2026-11-04T22:39:14-08:00'
+counts:
+  HIGH: 4
+  LOW: 3
+  MEDIUM: 9
+status: COMPLETE

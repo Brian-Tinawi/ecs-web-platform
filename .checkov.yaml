@@ -1,0 +1,31 @@
+# Checkov config. Every skip MUST carry a justification comment (shown in README/ADR if relevant).
+framework:
+  - terraform
+  - terraform_plan
+  - github_actions
+  - secrets
+skip-path:
+  - .terraform
+  - node_modules
+external-checks-dir:
+  - policies/checkov
+compact: true
+quiet: true
+skip-check:
+  # Every skip is a deliberate lab tradeoff; the production answer is in README "Production additions".
+  - CKV_AWS_2      # HTTP-only listener: no domain/ACM cert in the lab; prod adds HTTPS (README, ADR 005)
+  - CKV_AWS_103    # TLS policy N/A without an HTTPS listener (same reason)
+  - CKV2_AWS_20    # HTTP->HTTPS redirect needs the HTTPS listener (same reason)
+  - CKV_AWS_378    # ALB->task hop is HTTP inside the VPC, locked to the ALB SG; TLS to tasks is a prod hardening item
+  - CKV_AWS_260    # Port 80 open to 0.0.0.0/0 on the public ALB is the point of a public website
+  - CKV_AWS_91     # ALB access logs need an S3 bucket + policy; skipped for a 4h lab (prod: enable, ADR 005)
+  - CKV_AWS_150    # Deletion protection off so the temporary stack can be destroyed; prod sets true
+  - CKV2_AWS_28    # WAF costs ~$6+/mo fixed; prod puts Cloudflare WAF in front (README)
+  - CKV_AWS_316    # CodeBuild needs privileged mode to run docker build; no local Docker (ADR 001)
+  - CKV_AWS_158    # Log groups use default CloudWatch encryption; a CMK adds ~$1/mo/key for no lab benefit
+  - CKV_AWS_145    # Build-source bucket holds only public demo code; SSE-S3 is enough
+  - CKV_AWS_18     # No access logging for the throwaway build-source bucket
+  - CKV_AWS_144    # Cross-region replication out of scope for a single-region lab (design in README)
+  - CKV2_AWS_61    # Throwaway bucket is force-destroyed with the stack
+  - CKV2_AWS_62    # No event notifications needed on the build-source bucket
+  - CKV_AWS_394    # AZ data source: we slice the first N names on purpose; stable enough for a 2-AZ lab

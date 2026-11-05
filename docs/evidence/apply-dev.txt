@@ -1,0 +1,6 @@
+module.vpc.aws_nat_gateway.this: Creation complete after 1m34s [id=nat-09879333b4ee52355]
+module.ecs_service.aws_lb.this: Creation complete after 2m32s [id=arn:aws:elasticloadbalancing:us-west-2:XXXXXXXX8491:loadbalancer/app/ecs-web-platform-dev-alb/838946ae1011e188]
+Apply complete! Resources: 55 added, 0 changed, 0 destroyed.
+image_tag = "cc2f9eabf8e7"
+site_url = "http://ecs-web-platform-dev-alb-1684131278.us-west-2.elb.amazonaws.com"
+vpc_cidr = "10.20.0.0/16"

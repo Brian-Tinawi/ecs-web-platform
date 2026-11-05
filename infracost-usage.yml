@@ -1,0 +1,4 @@
+# Usage assumptions for usage-based resources (requests, GB transferred, invocations).
+# Document every assumption here and in README "Cost"; numbers are "modeled".
+version: 0.1
+resource_usage: {}

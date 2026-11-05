@@ -1,0 +1,15 @@
+$ aws ecs describe-services ...
+desired: 2
+launchType: FARGATE
+rollout: COMPLETED
+running: 2
+service: ecs-web-platform-dev-web
+$ aws ecs describe-tasks ... (task -> AZ)
+--------------------------------------------
+|               DescribeTasks              |
++-------------+------+---------+-----------+
+|     az      | cpu  | memory  |  status   |
++-------------+------+---------+-----------+
+|  us-west-2a |  256 |  512    |  RUNNING  |
+|  us-west-2b |  256 |  512    |  RUNNING  |
++-------------+------+---------+-----------+

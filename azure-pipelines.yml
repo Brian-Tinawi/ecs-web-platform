@@ -1,0 +1,91 @@
+# Azure DevOps pipeline for ecs-web-platform — DOCUMENTATION-GRADE: written to be correct, never executed (ADR 006).
+# Flow: build image -> push to ECR -> terraform plan -> MANUAL APPROVAL -> apply -> force new ECS deployment.
+# Prereqs (one-time, in Azure DevOps):
+#   * AWS Toolkit service connection "aws-ecs-platform" using an IAM role assumed via OIDC/Web Identity
+#     (no long-lived keys); role limited to ECR push + the Terraform-managed resources.
+#   * Environment "ecs-prod" with an Approvals check (the manual gate before apply).
+#   * Variable group "ecs-platform" with: AWS_REGION, ECR_REPO, TF_STATE_BUCKET.
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include: [app/*, modules/*, envs/*]
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: ecs-platform
+  - name: TF_VERSION
+    value: '1.17.0'
+  - name: IMAGE_TAG
+    value: $(Build.SourceVersion)   # unique per commit -> works with IMMUTABLE ECR tags
+
+stages:
+  - stage: Build
+    jobs:
+      - job: image
+        steps:
+          - task: AWSShellScript@1
+            displayName: Build and push image to ECR
+            inputs:
+              awsCredentials: aws-ecs-platform
+              regionName: $(AWS_REGION)
+              scriptType: inline
+              inlineScript: |
+                set -euo pipefail
+                REG=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$(AWS_REGION).amazonaws.com
+                aws ecr get-login-password | docker login --username AWS --password-stdin "$REG"
+                docker build --build-arg APP_VERSION=$(IMAGE_TAG) -t "$REG/$(ECR_REPO):$(IMAGE_TAG)" app/
+                docker push "$REG/$(ECR_REPO):$(IMAGE_TAG)"
+
+  - stage: Plan
+    dependsOn: Build
+    jobs:
+      - job: plan
+        steps:
+          - script: |
+              curl -sSLo tf.zip https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip
+              unzip -qo tf.zip -d "$(Agent.TempDirectory)" && sudo mv "$(Agent.TempDirectory)/terraform" /usr/local/bin/
+            displayName: Install Terraform
+          - task: AWSShellScript@1
+            displayName: terraform plan (prod)
+            inputs:
+              awsCredentials: aws-ecs-platform
+              regionName: $(AWS_REGION)
+              scriptType: inline
+              inlineScript: |
+                set -euo pipefail
+                cd envs/prod
+                terraform init -input=false
+                terraform plan -input=false -var "ttl=$(date -u -d '+24 hours' +%Y-%m-%dT%H:%M:%SZ)" -out=tfplan
+          - publish: envs/prod/tfplan
+            artifact: tfplan
+
+  - stage: Apply
+    dependsOn: Plan
+    jobs:
+      - deployment: apply
+        environment: ecs-prod        # approval check on this environment = manual gate
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: tfplan
+                - checkout: self
+                - task: AWSShellScript@1
+                  displayName: terraform apply (reviewed plan) + ECS deploy
+                  inputs:
+                    awsCredentials: aws-ecs-platform
+                    regionName: $(AWS_REGION)
+                    scriptType: inline
+                    inlineScript: |
+                      set -euo pipefail
+                      cd envs/prod
+                      terraform init -input=false
+                      terraform apply -input=false "$(Pipeline.Workspace)/tfplan/tfplan"
+                      aws ecs update-service --cluster "$(terraform output -raw cluster_name)" \
+                        --service "$(terraform output -raw service_name)" --force-new-deployment
+                      aws ecs wait services-stable --cluster "$(terraform output -raw cluster_name)" \
+                        --services "$(terraform output -raw service_name)"

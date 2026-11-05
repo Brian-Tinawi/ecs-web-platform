@@ -1,0 +1,53 @@
+name: plan
+# Plan-only on pull requests via GitHub OIDC (no long-lived keys). There is NO apply job by design.
+on:
+  pull_request:
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.1
+      - name: AWS credentials (OIDC)
+        if: ${{ vars.AWS_PLAN_ROLE_ARN != '' }}
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: us-west-2
+      - name: Azure login (OIDC)
+        if: ${{ vars.AZURE_CLIENT_ID != '' }}
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: terraform plan
+        id: plan
+        env:
+          ARM_USE_OIDC: "true"
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          TTL=$(date -u -d '+48 hours' +%Y-%m-%dT%H:%M:%SZ)
+          terraform -chdir=envs/${{ matrix.env }} init -input=false
+          terraform -chdir=envs/${{ matrix.env }} plan -input=false -no-color -lock=false -var "ttl=$TTL" -out=tfplan | tee plan.txt
+          { echo "### Plan: ${{ matrix.env }}"; echo '```'; grep -E '^(Plan:|No changes)' plan.txt || tail -5 plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Infracost estimate
+        if: ${{ env.INFRACOST_API_KEY != '' }}
+        continue-on-error: true
+        run: |
+          curl -fsSL -o ic.tgz https://github.com/infracost/cli/releases/latest/download/infracost-linux-amd64.tar.gz
+          tar xzf ic.tgz && ./infracost scan envs/${{ matrix.env }} --no-color | tee -a "$GITHUB_STEP_SUMMARY"
